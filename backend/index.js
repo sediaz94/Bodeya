@@ -1,53 +1,43 @@
-const express = require("express")
-const app = express()
-const dotenv = require("dotenv")
-const mongoose = require("mongoose")
+let express = require("express");
+let mongoose = require("mongoose");
+let cors = require("cors");
+let bodyParser = require("body-parser");
 
-const multer = require("multer")
-const path = require("path")
+// Ruta de Express
+const studentRoute = require("../backend/routes/student.route");
+const userRoute = require("../backend/routes/user.route");
+const productosRoute = require("../backend/routes/productos.route");
 
-//Rutas
-const authRoute = require("./routes/auth")
-const authUser = require("./routes/user")
-const authPost = require("./routes/posts")
-const authCat = require("./routes/categories")
+// DB Config
+const db = require("../backend/database/db").mongoURI;
+// Connect to MongoDB from mLab
+mongoose
+  .connect(db, { useNewUrlParser: true })
+  .then(() => console.log("MongoDB conectada correctamente"))
+  .catch((err) => console.log(err));
 
-dotenv.config()
-app.use(express.json())
-app.use("/images", express.static(path.join(__dirname, "/images")))
-
-//Coneccion a db
-mongoose.connect(process.env.DB_CONNECT, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    /*  useCreateIndex: true,
-    useFindAndModify: true,*/
+const app = express();
+app.use(bodyParser.json());
+app.use(
+  bodyParser.urlencoded({
+    extended: true,
   })
-  .then(console.log("Connected to MongoDB"))
-  .catch((err) => console.log(err))
+);
 
-// guardado de archivos
-const storage = multer.diskStorage({
-  destination: (req, file, callb) => {
-    callb(null, "images")
-  },
-  filename: (req, file, callb) => {
-    //callb(null, "file.png")
-    callb(null, req.body.name)
-  },
-})
-const upload = multer({ storage: storage })
-app.post("/upload", upload.single("file"), (req, res) => {
-  res.status(200).json("File has been uploaded")
-})
 
-//Rutas
-app.use("/auth", authRoute)
-app.use("/users", authUser)
-app.use("/posts", authPost)
-app.use("/category", authCat)
+app.use(cors());
+app.use("/students", studentRoute);
+app.use("/users", userRoute);
+app.use("/productos", productosRoute);
 
-//Servidor
-app.listen("5000", () => {
-  console.log("Bakcken esta corriendo")
-})
+// PORT
+const port = process.env.PORT || 4000;
+const server = app.listen(port, () => {
+  console.log("Connected to port " + port);
+});
+
+app.use(function (err, req, res, next) {
+  console.error(err.message);
+  if (!err.statusCode) err.statusCode = 500;
+  res.status(err.statusCode).send(err.message);
+});
